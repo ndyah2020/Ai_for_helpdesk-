@@ -1,6 +1,6 @@
-# AI Chính xác
+# AI Chính xác dùng cho tư vấn khách hàng
 ## 1. Mục đích
-Xây dựng một hệ thống Hỏi-Đáp (RAG) có khả năng đọc và hiểu một tài liệu PDF để trả lời các câu hỏi của người dùng dựa trên nội dung tài liệu đó.
+Xây dựng một hệ thống Hỏi-Đáp (RAG) có khả năng đọc và hiểu một tài liệu PDF để trả lời các câu hỏi của người dùng dựa trên nội dung tài liệu đó. Áp dụng vào việc tư vấn khách hàng của một nghiệp vụ nào đó.
 
 ## 2. Nguồn dữ liệu thử nghiệm
 - Báo cáo Chỉ số Thương mại điện tử Việt Nam 2025: [Báo cáo EBI 2025](https://drive.google.com/file/d/18hUNrKSJXQmKOQl7mLhqhV1bg2MiKcmN/view)
