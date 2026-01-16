@@ -1,0 +1,9 @@
+__pycache__
+/tempCodeRunnerFile.py
+/venv
+/.venv
+/debug.py
+/.vs
+/data/persistent_chroma_db
+/test.py
+/.env

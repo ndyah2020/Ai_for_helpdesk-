@@ -1,0 +1,12 @@
+pydantic-settings
+langchain==0.3.7
+langchain-core==0.3.17
+langchain-community==0.3.7
+langchain-text-splitters==0.3.2
+langchain-ollama==0.2.0
+pymupdf
+pandas
+flask
+requests
+langchain-postgres
+psycopg2-binary
