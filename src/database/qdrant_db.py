@@ -4,29 +4,36 @@ from langchain_core.documents import Document
 from src.interfaces import BaseVectorDB
 from qdrant_client import QdrantClient, models
 from langchain_qdrant import QdrantVectorStore
+from langchain.retrievers import EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
 from dotenv import load_dotenv
 import os
 
 class QdrantDBWrapper(BaseVectorDB):
     def __init__(self, embeddings_model: str, collection_name: str):
         load_dotenv()
-        self.embedding_function = OllamaEmbeddings(model=embeddings_model, base_url=os.getenv('EMBEDDING_BASE_URL'))
-        self.collection_name = collection_name
-        self.url=os.getenv("QDRANT_URL")
-        self.api_key_cloud=os.getenv("QDRANT_API")
-        
-        self.client = QdrantClient(
-            url=self.url,
-            api_key=self.api_key_cloud,
-            timeout=60
+        self.embedding_function = OllamaEmbeddings(
+            model=embeddings_model, 
+            base_url=os.getenv('EMBEDDING_BASE_URL')
         )
+
+        self.client = QdrantClient(
+            url=os.getenv("QDRANT_URL"),
+            api_key=os.getenv("QDRANT_API"),
+            timeout=100
+        )
+
+        self.collection_name = collection_name
+        self._ensure_collection_exists()
 
         self.vector_store = QdrantVectorStore(
             client=self.client,
             collection_name=collection_name,
             embedding=self.embedding_function,
         )
-    
+
+        self.bm25_retriever = None
+
     def add_documents(self, documents : List[Document]):
         print(f"Đang upload {len(documents)} tài liệu lên Cloud...")
         try:
@@ -106,14 +113,34 @@ class QdrantDBWrapper(BaseVectorDB):
             print("Đã xóa xong dữ liệu cũ.")
         except Exception as e:
             print(f"Lỗi khi xóa file cũ (có thể file chưa từng tồn tại): {e}")
-    
-    def get_retriever(self, k: int, search_type: str = "similarity"):
-        kwargs = {"k": k}
-        if search_type == "mmr":
-            kwargs["fetch_k"] = k * 4
-            kwargs["lambda_mult"] = 0.5
+    def init_bm25(self, all_documents: List[Document]):
+        print("Đang đánh index BM25 (Keyword Search)...")
+        self.bm25_retriever = BM25Retriever.from_documents(all_documents)
+        print("BM25 đã sẵn sàng!")
 
-        return self.vector_store.as_retriever(
-            search_type=search_type,
-            search_kwargs=kwargs
+    def get_retriever(self, k: int = 4, mmr_diversity: float = 0.5):
+        # 1. Cấu hình Qdrant với MMR (Dense + Diversity)
+        # MMR giúp loại bỏ các vector quá giống nhau, tăng tính đa dạng
+        qdrant_retriever = self.vector_store.as_retriever(
+            search_type="mmr",
+            search_kwargs={
+                "k": k, 
+                "fetch_k": k * 4,     
+                "lambda_mult": 1 - mmr_diversity 
+            }
         )
+        # 2. Nếu chưa có BM25 , chỉ trả về Qdrant MMR
+        if not self.bm25_retriever:
+            print("Chưa khởi tạo BM25, chỉ sử dụng Qdrant Vector Search.")
+            return qdrant_retriever
+
+        # BM25Retriever cho phép chỉnh k trực tiếp
+        self.bm25_retriever.k = k
+
+        # Tỷ lệ 50-50 cho Semantic và Keyword
+        ensemble_retriever = EnsembleRetriever(
+            retrievers=[qdrant_retriever, self.bm25_retriever],
+            weights=[0.5, 0.5]
+        )
+        
+        return ensemble_retriever

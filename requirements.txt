@@ -11,3 +11,4 @@ requests
 sentence-transformers
 qdrant_client
 langchain-qdrant
+rank_bm25

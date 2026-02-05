@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200
     # số chunk được lấy ra từ chroma data
-    CHUNK_NUMBER: int = 5
+    CHUNK_NUMBER: int = 25
     # model llm để trả lời
     MODEL_NAME: str = "gpt-oss:120b"
     # model embedding
