@@ -2,13 +2,13 @@ from typing import List
 from langchain_ollama import OllamaEmbeddings
 from langchain_core.documents import Document
 from src.interfaces import BaseVectorDB
-from config.settings import settings
 from langchain_postgres import PGVector
 from dotenv import load_dotenv
 import os
 
 class RagDBWrapper(BaseVectorDB):
     def __init__(self, embeddings_model: str, collection_name: str):
+        
         load_dotenv()
         self.embedding_function = OllamaEmbeddings(
             model=embeddings_model,
@@ -29,15 +29,19 @@ class RagDBWrapper(BaseVectorDB):
         except Exception as e:
             print("Dữ liệu này đã tồn tại, bỏ qua hoặc cần xử lý update thủ công.")
 
-        print(f"Đã lưu dữ liệu vào thư mục: {settings.CHROMA_DB_DIR}")
-
     def reset_db(self):
         self.vector_store.drop_tables() 
         self.vector_store.delete_collection()
         print("Đã xóa sạch database!")
 
-    def get_retriever(self, k: int):
+    def get_retriever(self, k: int, search_type: str = "similarity"):
+        kwargs = {"k": k}
+        
+        if search_type == "mmr":
+            kwargs["fetch_k"] = k * 4
+            kwargs["lambda_mult"] = 0.5
+
         return self.vector_store.as_retriever(
-            search_type="similarity",
-            search_kwargs={"k": k}
+            search_type=search_type,
+            search_kwargs=kwargs
         )

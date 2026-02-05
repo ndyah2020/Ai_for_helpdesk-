@@ -35,31 +35,3 @@ def chat_endpoint():
             "status": "error",
             "message": str(e)
         }), 500
-    
-@chat_bp.route('/webhook/rocketchat', methods=['POST'])
-def rocketchat_webhook():
-    try:
-        data = request.get_json() or {}
-        if data.get('bot') or data.get('user_name') == 'ragbot': 
-            return jsonify({"text": ""})
-        
-        raw_text = data.get('text', '').strip()
-        trigger_word = "@aibot"
-
-        if raw_text.startswith(trigger_word):
-            user_input = raw_text[len(trigger_word):].strip()
-        else:
-            user_input = raw_text
-
-        if not user_input:
-            return jsonify({"text": "Bạn chưa nhập nội dung câu hỏi."})
-
-        answer_text = rag_service.get_answer(user_input)
-        asker = data.get('user_name', 'bạn')
-        return jsonify({
-            "text":f"@{asker} {answer_text}" 
-        })
-    except Exception as e:
-        return jsonify({
-            "text": f"Hệ thống AI gặp lỗi: {str(e)}"
-        })

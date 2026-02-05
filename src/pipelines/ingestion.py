@@ -7,7 +7,7 @@ class RAGingestion:
         self.vector_db = vector_db
 
     def reset_db(self):
-         self.vector_db.reset_db(self)
+        self.vector_db.reset_db(self)
          
     def run(self):
         print("Bắt đầu xử lý tài liệu PDF...")

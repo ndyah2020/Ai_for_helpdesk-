@@ -1,9 +1,17 @@
-from src.interfaces import BaseVectorDB, BaseLLM
+from src.interfaces import BaseVectorDB, BaseLLM, BaseReranker 
 from config.settings import settings
+from langchain.retrievers import ContextualCompressionRetriever
 
 class RAGpipeline:
-    def __init__(self, vector_db: BaseVectorDB, llm_wrapper: BaseLLM):
-        self.retriever = vector_db.get_retriever(k=settings.CHUNK_NUMBER)
+    def __init__(self, vector_db: BaseVectorDB, reranker: BaseReranker, llm_wrapper: BaseLLM):
+        
+        initial_docs = vector_db.get_retriever(k=settings.CHUNK_NUMBER)
+        compressor = reranker.get_compressor()
+
+        self.compression_retriever = ContextualCompressionRetriever(
+            base_compressor=compressor,
+            base_retriever=initial_docs
+        )
 
         self.llm_client = llm_wrapper.llm
         self.prompt_template = llm_wrapper.prompt
@@ -29,7 +37,12 @@ class RAGpipeline:
         return "\n\n".join(formatted_texts)
     
     def run(self, input: str) -> str: 
-        retrieved_docs = self.retriever.invoke(input) 
+        try:
+            retrieved_docs = self.compression_retriever.invoke(input)
+        except Exception as e:
+            print(f"Lỗi khi retrieve/rerank: {e}")
+            retrieved_docs = []
+        
         context_text = self._format_docs(retrieved_docs)
         
         final_prompt_content = self.prompt_template.format(

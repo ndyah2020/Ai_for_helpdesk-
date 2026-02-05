@@ -8,5 +8,6 @@ pymupdf
 pandas
 flask
 requests
-langchain-postgres
-psycopg2-binary
+sentence-transformers
+qdrant_client
+langchain-qdrant

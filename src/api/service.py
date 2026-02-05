@@ -1,5 +1,5 @@
 import logging
-from src.components.vector_db import RagDBWrapper
+from src.database.qdrant_db import QdrantDBWrapper
 from src.components.llm import OllamaRAGLLM
 from src.components.reranker import HuggingFaceReranker
 from src.pipelines.rag import RAGpipeline
@@ -18,11 +18,11 @@ class RAGService:
         logger.info("Đang khởi tạo RAG Service...")
 
         try:
-            vector_db = RagDBWrapper(settings.EMBEDDING_MODEL, settings.COLLECTION_NAME)
-            # reranker = HuggingFaceReranker(settings.CROSS_ENCODER, settings.TOP_CHUNK)
+            vector_db = QdrantDBWrapper(settings.EMBEDDING_MODEL, settings.COLLECTION_NAME)
+            reranker = HuggingFaceReranker(settings.CROSS_ENCODER, settings.TOP_CHUNK)
             llm = OllamaRAGLLM()
             
-            self.pipeline = RAGpipeline(vector_db, llm)
+            self.pipeline = RAGpipeline(vector_db, reranker,llm)
             logger.info("RAG Service sẵn sàng!")
         except Exception as e:
             logger.error("Lỗi Khởi tạo RAG")
