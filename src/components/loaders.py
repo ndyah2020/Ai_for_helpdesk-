@@ -10,13 +10,17 @@ class LocalDirLoader(BaseLoader):
         self.directory_path = directory_path
         self.glob_pattern = glob_pattern
 
-    def load_documents(self) -> List[Document]:
+    def get_file_paths(self) -> List[str]:
         search_path = os.path.join(self.directory_path, self.glob_pattern)
-        pdf_paths = glob.glob(search_path)
-        
+        return glob.glob(search_path)
+
+    def load_single_file(self, file_path: str) -> List[Document]:
+        loader = PyMuPDFLoader(file_path)
+        return loader.load()
+
+    def load_documents(self) -> List[Document]:
+        file_paths = self.get_file_paths()
         documents = []
-        for path in pdf_paths:
-            loader = PyMuPDFLoader(path)
-            docs = loader.load()
-            documents.extend(docs)
+        for path in file_paths:
+            documents.extend(self.load_single_file(path))
         return documents
