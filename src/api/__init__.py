@@ -14,7 +14,7 @@ def create_app():
         return response
 
     with app.app_context():
-        try:
+        try:  
             rag_service.initialize()
         except Exception:
             print("Cảnh báo: Không thể load RAG Model lúc khởi động.")
