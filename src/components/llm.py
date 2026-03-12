@@ -14,6 +14,7 @@ class OllamaRAGLLM(BaseLLM):
             headers={'Authorization': 'Bearer ' + os.getenv("OLLAMA_API_KEY")}
         )
         self._prompt = self._create_prompt()      
+        self._outline_prompt = self._create_outline_prompt()
     
     @property
     def llm(self):
@@ -22,6 +23,10 @@ class OllamaRAGLLM(BaseLLM):
     @property
     def prompt(self):
         return self._prompt
+
+    @property
+    def outline_prompt(self):
+        return self._outline_prompt
 
     def _create_prompt(self) -> ChatPromptTemplate:
         # Tạo prompt yêu cầu
@@ -69,5 +74,22 @@ class OllamaRAGLLM(BaseLLM):
         ---------------------
         User Question: {input}
         Your Help Desk Response (in HTML format):
+        """
+        return ChatPromptTemplate.from_template(template)
+
+    def _create_outline_prompt(self) -> ChatPromptTemplate:
+        template = """
+        You are a helpful assistant structuring an answer for a Help Desk Support Specialist.
+        Based ONLY on the provided <context>, create a clear, step-by-step OUTLINE (dàn ý) to answer the user's question. 
+        The outline should be in VIETNAMESE.
+        Do NOT write the full answer yet. Only provide the key bullet points or steps that need to be covered to solve the user's problem.
+
+        --- INPUT CONTEXT ---
+        <context>
+        {context}
+        </context>
+        ---------------------
+        User Question: {input}
+        Outline:
         """
         return ChatPromptTemplate.from_template(template)

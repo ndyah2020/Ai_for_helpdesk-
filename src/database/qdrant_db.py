@@ -113,6 +113,7 @@ class QdrantDBWrapper(BaseVectorDB):
             print("Đã xóa xong dữ liệu cũ.")
         except Exception as e:
             print(f"Lỗi khi xóa file cũ (có thể file chưa từng tồn tại): {e}")
+            
     def init_bm25(self, all_documents: List[Document]):
         print("Đang đánh index BM25 (Keyword Search)...")
         self.bm25_retriever = BM25Retriever.from_documents(all_documents)

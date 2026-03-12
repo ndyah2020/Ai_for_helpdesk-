@@ -53,3 +53,8 @@ class BaseLLM(ABC):
     @abstractmethod
     def prompt(self) -> ChatPromptTemplate:
         pass
+
+    @property
+    @abstractmethod
+    def outline_prompt(self) -> ChatPromptTemplate:
+        pass

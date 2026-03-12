@@ -47,3 +47,35 @@ def chat_endpoint():
             "message": "Lỗi hệ thống nội bộ",
             "error_details": str(e) 
         }), 500
+
+@chat_bp.route('/ingest', methods=['POST'])
+def ingest_endpoint():
+    try:
+        rag_service.run_ingestion()
+        return jsonify({
+            "status": "success",
+            "message": "Đã hoàn tất quá trình nạp dữ liệu (Ingestion) thành công."
+        }), 200
+    except Exception as e:
+        print(f"Server Error during Ingestion: {e}")
+        return jsonify({
+            "status": "error",
+            "message": "Lỗi hệ thống trong quá trình nạp dữ liệu",
+            "error_details": str(e)
+        }), 500
+
+@chat_bp.route('/reset', methods=['POST'])
+def reset_endpoint():
+    try:
+        rag_service.reset_db()
+        return jsonify({
+            "status": "success",
+            "message": "Đã reset toàn bộ Database vector thành công."
+        }), 200
+    except Exception as e:
+        print(f"Server Error during Reset: {e}")
+        return jsonify({
+            "status": "error",
+            "message": "Lỗi hệ thống trong quá trình reset Database",
+            "error_details": str(e)
+        }), 500

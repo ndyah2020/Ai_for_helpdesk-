@@ -31,14 +31,14 @@ class RAGService:
                 loader = LocalDirLoader(settings.SOURCE_DIR)
                 all_docs = loader.load_documents() 
                 
-                if all_docs:
+                if all_docs and len(all_docs) > 0:
                     self.vector_db.init_bm25(all_docs)
                     logger.info(f"Đã index BM25 thành công cho {len(all_docs)} chunks.")
                 else:
-                    logger.warning("Không tìm thấy tài liệu nào. Hệ thống sẽ bỏ qua BM25.")
+                    logger.warning(f"Không tìm thấy tài liệu nào trong {settings.SOURCE_DIR}. Hàm BM25 sẽ tắt mặc định.")
             except Exception as e:
-                # Nếu lỗi BM25 thì vẫn chạy tiếp, chỉ dùng Vector Search thôi
-                logger.warning(f"Lỗi khởi tạo BM25 (Không nghiêm trọng): {e}")
+                logger.error(f"Lỗi khởi tạo BM25: {e}")
+
 
             # 3. Khởi tạo Reranker & LLM
             reranker = HuggingFaceReranker(settings.CROSS_ENCODER, settings.TOP_CHUNK)
@@ -57,5 +57,23 @@ class RAGService:
         if not self.pipeline:
             self.initialize()
         return self.pipeline.run(input, k=k, mmr_diversity=mmr_diversity)
+
+    def run_ingestion(self):
+        logger.info("Bắt đầu tiến trình nạp dữ liệu (Ingestion) thông qua API...")
+        from run_ingestion import RunIngestion
+        ingestion_job = RunIngestion()
+        ingestion_job.create_db()
+        logger.info("Hoàn tất nạp dữ liệu.")
+        self.pipeline = None 
+        return True
+
+    def reset_db(self):
+        logger.info("Bắt đầu tiến trình Reset Database thông qua API...")
+        from run_ingestion import RunIngestion
+        ingestion_job = RunIngestion()
+        ingestion_job.reset_db()
+        logger.info("Hoàn tất Reset Database.")
+        self.pipeline = None 
+        return True
     
 rag_service = RAGService()
