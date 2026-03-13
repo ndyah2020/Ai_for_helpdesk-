@@ -1,7 +1,12 @@
 from flask import Blueprint, request, jsonify
 from pydantic import ValidationError
+import os
+import hashlib
+from werkzeug.utils import secure_filename
 from src.api.service import rag_service
 from src.api.schemas import ChatRequest, ChatResponse, AnswerData
+from src.untils.file_tracker import FileTracker
+from config.settings import settings
 
 chat_bp = Blueprint('chat', __name__)
 
@@ -61,6 +66,50 @@ def ingest_endpoint():
         return jsonify({
             "status": "error",
             "message": "Lỗi hệ thống trong quá trình nạp dữ liệu",
+            "error_details": str(e)
+        }), 500
+
+@chat_bp.route('/upload', methods=['POST'])
+def upload_endpoint():
+    try:
+        if 'file' not in request.files:
+            return jsonify({"status": "error", "message": "Không tìm thấy file trong yêu cầu"}), 400
+            
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"status": "error", "message": "Tên file rỗng"}), 400
+
+        # Đọc nội dung file để tính hash MD5 nhằm phát hiện trùng lặp
+        file_content = file.read()
+        file_hash = hashlib.md5(file_content).hexdigest()
+        
+        tracker = FileTracker()
+        if tracker.is_hash_exists(file_hash):
+            return jsonify({
+                "status": "error",
+                "message": "File đã tồn tại trong hệ thống (trùng lặp nội dung). Đã hủy upload để tránh trùng lặp chunks."
+            }), 400
+
+        # Đảm bảo thư mục lưu trữ tồn tại
+        os.makedirs(settings.SOURCE_DIR, exist_ok=True)
+        
+        # Lưu file
+        filename = secure_filename(file.filename)
+        save_path = os.path.join(settings.SOURCE_DIR, filename)
+        
+        with open(save_path, "wb") as f:
+            f.write(file_content)
+
+        return jsonify({
+            "status": "success",
+            "message": f"Upload file '{filename}' thành công. Đã lưu tại {save_path}. Vui lòng gọi API /ingest để nạp dữ liệu gốc."
+        }), 200
+
+    except Exception as e:
+        print(f"Server Error during File Upload: {e}")
+        return jsonify({
+            "status": "error",
+            "message": "Lỗi hệ thống trong quá trình upload file",
             "error_details": str(e)
         }), 500
 

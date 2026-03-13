@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+from datetime import datetime, timezone
 
 class FileTracker:
     def __init__(self, tracking_file="file_status.json"):
@@ -42,16 +43,54 @@ class FileTracker:
         if current_hash is None:
             return False, None
 
-        # Nếu file chưa từng được xử lý
-        if file_path not in self.history:
+        file_name = os.path.basename(file_path)
+
+        # Lấy hash từ format mới hoặc format cũ
+        if file_name not in self.history:
+            if file_path in self.history:
+                record = self.history[file_path]
+                old_hash = record if isinstance(record, str) else record.get("hash")
+                if old_hash != current_hash:
+                    return True, current_hash
+                return False, current_hash
+            
+            # File là mới hoàn toàn về tên, kiểm tra xem nội dung đã tồn tại chưa
+            if self.is_hash_exists(current_hash):
+                # Nội dung đã tồn tại dưới tên khác -> Không cần nạp lại để tránh trùng lặp chuộng
+                return False, current_hash
+                
             return True, current_hash
         
+        # Lấy file đã có trong history
+        record = self.history[file_name]
+        old_hash = record.get("hash") if isinstance(record, dict) else record
+
         # Nếu hash khác hash cũ -> Đã thay đổi
-        if self.history[file_path] != current_hash:
+        if old_hash != current_hash:
+            if self.is_hash_exists(current_hash):
+                return False, current_hash
             return True, current_hash
             
         return False, current_hash
 
-    def update_status(self, file_path, new_hash):
-        self.history[file_path] = new_hash
+    def update_status(self, file_path, new_hash, status="embedded"):
+        file_name = os.path.basename(file_path)
+        normalized_path = file_path.replace("\\", "/")
+        
+        current_time_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        self.history[file_name] = {
+            "file_path": normalized_path,
+            "hash": new_hash,
+            "last_updated": current_time_iso,
+            "status": status
+        }
         self.save_history()
+
+    def is_hash_exists(self, hash_to_check: str) -> bool:
+        """Kiểm tra xem một hash đã tồn tại trong file_status.json hay chưa (tránh trùng lặp nội dung)."""
+        for record in self.history.values():
+            old_hash = record.get("hash") if isinstance(record, dict) else record
+            if old_hash == hash_to_check:
+                return True
+        return False
