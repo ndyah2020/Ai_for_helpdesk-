@@ -52,7 +52,7 @@ def chat_endpoint():
             "message": "Lỗi hệ thống nội bộ",
             "error_details": str(e) 
         }), 500
-
+# http://localhost:5202/api/v1/
 @chat_bp.route('/ingest', methods=['POST'])
 def ingest_endpoint():
     try:
@@ -126,5 +126,56 @@ def reset_endpoint():
         return jsonify({
             "status": "error",
             "message": "Lỗi hệ thống trong quá trình reset Database",
+            "error_details": str(e)
+        }), 500
+
+@chat_bp.route('/files', methods=['GET'])
+def get_files_endpoint():
+    try:
+        tracker = FileTracker()
+        
+        # Đảm bảo thư mục tồn tại
+        os.makedirs(settings.SOURCE_DIR, exist_ok=True)
+        
+        files_list = []
+        
+        # Lấy danh sách file thực tế trong thư mục
+        for filename in os.listdir(settings.SOURCE_DIR):
+            file_path = os.path.join(settings.SOURCE_DIR, filename)
+            
+            # Chỉ lấy file, bỏ qua thư mục con nếu có
+            if os.path.isfile(file_path):
+                # Kiểm tra xem file này đã được nạp (có trong tracker) hay chưa
+                if filename in tracker.history:
+                    file_info = tracker.history[filename]
+                    if isinstance(file_info, str):
+                        files_list.append({
+                            "file_name": filename,
+                            "hash": file_info,
+                            "status": "embedded"
+                        })
+                    else:
+                        info = file_info.copy()
+                        info["file_name"] = filename
+                        files_list.append(info)
+                else:
+                    # File có trong thư mục nhưng chưa được nạp (chưa có trong JSON)
+                    files_list.append({
+                        "file_name": filename,
+                        "file_path": file_path.replace("\\", "/"),
+                        "hash": None,
+                        "last_updated": None,
+                        "status": "pending_ingest" # Trạng thái chờ nạp
+                    })
+                
+        return jsonify({
+            "status": "success",
+            "data": files_list
+        }), 200
+    except Exception as e:
+        print(f"Server Error during get_files: {e}")
+        return jsonify({
+            "status": "error",
+            "message": "Lỗi hệ thống khi lấy danh sách file",
             "error_details": str(e)
         }), 500
