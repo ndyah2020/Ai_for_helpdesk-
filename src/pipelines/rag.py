@@ -54,6 +54,19 @@ class RAGpipeline:
             print(f"Lỗi khi retrieve/rerank: {e}")
             retrieved_docs = []
         
+        if not retrieved_docs or len(retrieved_docs) == 0:
+            print("Không tìm thấy tài liệu, đưa thẳng input vào LLM để xử lý giao tiếp cơ bản (chào hỏi).")
+            # Đi thẳng vào mô hình để LLM dùng System Prompt tự phân loại (Lời chào vs Câu hỏi ngoài luồng)
+            fallback_prompt = self.prompt_template.format(
+                context="",
+                input=input
+            )
+            response = self.llm_client.chat(
+                model=settings.MODEL_NAME, 
+                messages=[{'role': 'user', 'content': fallback_prompt}]
+            )
+            return response['message']['content']
+
         context_text = self._format_docs(retrieved_docs)
         
         print("Đang tạo dàn ý (Outline Generation)...")

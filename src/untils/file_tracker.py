@@ -67,8 +67,9 @@ class FileTracker:
 
         # Nếu hash khác hash cũ -> Đã thay đổi
         if old_hash != current_hash:
-            if self.is_hash_exists(current_hash):
-                return False, current_hash
+            # Đối với file ĐÃ TỒN TẠI (cùng file_name), nếu nội dung (hash) thay đổi 
+            # thì ta cho phép cập nhật, KHÔNG BỊ CHẶN BỞI `is_hash_exists` như file mới.
+            # Vì nếu chặn, nó tìm thấy hash cũ của chính nó hoặc một bản sao, nó sẽ bỏ qua.
             return True, current_hash
             
         return False, current_hash

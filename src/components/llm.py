@@ -64,7 +64,7 @@ class OllamaRAGLLM(BaseLLM):
         4.  **STRICT GROUNDING RULE (The "Square Earth" Principle):**
             -   Answer **ONLY** using facts found in the <context>.
             -   **DO NOT** hallucinate or use outside knowledge to fill gaps.
-            -   **Unavailable Info:** If the <context> does not contain the answer, politely apologize and output EXACTLY this HTML string: 
+            -   **Unavailable Info:** If the <context> does not contain the answer, or if the <context> is empty, or if the OUTLINE says "NO_CONTEXT", politely apologize and output EXACTLY this HTML string: 
                 "<p>Hiện tại tài liệu của tôi chưa có thông tin chi tiết về vấn đề này. Quý khách vui lòng liên hệ trực tiếp nhân viên hỗ trợ để được kiểm tra kỹ hơn ạ.</p>" (Do not make up an answer).
 
         5.  **CONVERSATION HANDLING:**
@@ -83,6 +83,8 @@ class OllamaRAGLLM(BaseLLM):
         Based ONLY on the provided <context>, create a clear, step-by-step OUTLINE (dàn ý) to answer the user's question. 
         The outline should be in VIETNAMESE.
         Do NOT write the full answer yet. Only provide the key bullet points or steps that need to be covered to solve the user's problem.
+
+        STRICT RULE: If the provided <context> is EMPTY or DOES NOT CONTAIN information related to the user's question, you MUST return exactly the word: "NO_CONTEXT" and nothing else. Do NOT hallucinate an outline.
 
         --- INPUT CONTEXT ---
         <context>

@@ -1,7 +1,9 @@
 from src.interfaces import BaseLoader, BaseSplitter, BaseVectorDB
 import os
+import shutil
 from tqdm import tqdm
 from src.untils.file_tracker import FileTracker
+from config.settings import settings
 
 class RAGingestion:
     def __init__(self, loader_docs: BaseLoader, split_docs: BaseSplitter, vector_db: BaseVectorDB):
@@ -15,6 +17,17 @@ class RAGingestion:
         if os.path.exists(self.tracker.tracking_file):
             os.remove(self.tracker.tracking_file)    
             self.tracker = FileTracker()
+            
+        # Xóa các file vật lý đã upload trong thư mục SOURCE_DIR
+        source_dir = settings.SOURCE_DIR
+        if os.path.exists(source_dir):
+            for filename in os.listdir(source_dir):
+                file_path = os.path.join(source_dir, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.unlink(file_path)
+                except Exception as e:
+                    print(f"Lỗi khi xóa file {file_path}: {e}")
          
     def run(self):
         print("Bắt đầu quy trình Smart Ingestion...")
