@@ -69,9 +69,7 @@ class QdrantDBWrapper(BaseVectorDB):
                 field_schema=models.PayloadSchemaType.KEYWORD,
             )
             print("Đã tạo Index thành công!")
-        
-        # Trường hợp Collection đã có nhưng chưa có Index
-        # Đoạn này chạy thừa cũng không sao, Qdrant sẽ tự bỏ qua nếu đã có index
+
         try:
             self.client.create_payload_index(
                 collection_name=self.collection_name,
@@ -82,7 +80,6 @@ class QdrantDBWrapper(BaseVectorDB):
             pass
 
     def reset_db(self):
-        # Reset: Xóa sạch và tạo lại cáim mới
         try:
             self.client.delete_collection(collection_name=self.collection_name)
             print(f"Đã xóa collection cũ: {self.collection_name}")
@@ -90,29 +87,55 @@ class QdrantDBWrapper(BaseVectorDB):
             
             print("Database đã được reset và sẵn sàng nạp mới!")
         except Exception as e:
-            # Nếu collection chưa tồn tại mà lỡ gọi xóa thì bỏ qua lỗi
             print(f"Lỗi reset (có thể collection chưa từng tồn tại): {e}")
             self._ensure_collection_exists()
 
     def delete_file_data(self, file_path: str):
-        print(f"Đang xóa dữ liệu cũ của file: {file_path}...")
+        print(f"Đang yêu cầu xóa file với chuỗi: '{file_path}'")
+        
         try:
+            sample, _ = self.client.scroll(collection_name=self.collection_name, limit=1)
+            if sample:
+                print("\n[DEBUG] MỘT CHUNK TRONG DB ĐANG CÓ PAYLOAD NHƯ SAU:")
+                print(sample[0].payload)
+                print("-" * 40)
+        except Exception as e:
+            pass
+        # ---------------------------------------------------
+
+        # Cấu hình filter (langchain_qdrant lưu metadata trong key 'metadata')
+        file_filter = models.Filter(
+            must=[
+                models.FieldCondition(
+                    key="metadata.source", 
+                    match=models.MatchValue(value=file_path),
+                ),
+            ]
+        )
+
+        try:
+            # Bắt buộc đếm xem có trúng chunk nào không
+            count_result = self.client.count(
+                collection_name=self.collection_name,
+                count_filter=file_filter,
+                exact=True
+            )
+            
+            if count_result.count == 0:
+                print(f"THẤT BẠI: Qdrant không tìm thấy chunk nào có metadata.source chính xác là '{file_path}'")
+                print("Vui lòng so sánh chuỗi bạn truyền vào với kết quả [DEBUG] ở trên xem có khác nhau dấu gạch chéo (/, \\) hay đường dẫn tuyệt đối/tương đối không.")
+                return
+
+            # Gọi lệnh xóa VÀ BẮT BUỘC CHỜ XÓA XONG (wait=True)
             self.client.delete(
                 collection_name=self.collection_name,
-                points_selector=models.FilterSelector(
-                    filter=models.Filter(
-                        must=[
-                            models.FieldCondition(
-                                key="metadata.source",
-                                match=models.MatchValue(value=file_path),
-                            ),
-                        ],
-                    )
-                ),
+                points_selector=models.FilterSelector(filter=file_filter),
+                wait=True  # Bắt buộc phải có để tránh đụng độ với add_documents
             )
-            print("Đã xóa xong dữ liệu cũ.")
+            print(f"✅ Đã xóa THÀNH CÔNG {count_result.count} chunks của file này.")
+            
         except Exception as e:
-            print(f"Lỗi khi xóa file cũ (có thể file chưa từng tồn tại): {e}")
+            print(f"Lỗi hệ thống khi xóa file: {e}")
             
     def init_bm25(self, all_documents: List[Document]):
         print("Đang đánh index BM25 (Keyword Search)...")
