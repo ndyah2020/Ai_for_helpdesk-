@@ -7,5 +7,5 @@ __pycache__
 /data/persistent_chroma_db
 /test.py
 /.env
-/data/source_documents/*
+/data/source_documents/
 file_status.json
