@@ -62,10 +62,10 @@ class QdrantDBWrapper(BaseVectorDB):
             print(f"Đã tạo Collection (Size: {vec_size})")
 
             # 3. TẠO INDEX CHO TRƯỜNG 'source
-            print("Đang tạo Payload Index cho field 'source'...")
+            print("Đang tạo Payload Index cho field 'metadata.source'...")
             self.client.create_payload_index(
                 collection_name=self.collection_name,
-                field_name="source",
+                field_name="metadata.source",
                 field_schema=models.PayloadSchemaType.KEYWORD,
             )
             print("Đã tạo Index thành công!")
@@ -75,7 +75,7 @@ class QdrantDBWrapper(BaseVectorDB):
         try:
             self.client.create_payload_index(
                 collection_name=self.collection_name,
-                field_name="source",
+                field_name="metadata.source",
                 field_schema=models.PayloadSchemaType.KEYWORD,
             )
         except Exception:
@@ -103,7 +103,7 @@ class QdrantDBWrapper(BaseVectorDB):
                     filter=models.Filter(
                         must=[
                             models.FieldCondition(
-                                key="source",
+                                key="metadata.source",
                                 match=models.MatchValue(value=file_path),
                             ),
                         ],
